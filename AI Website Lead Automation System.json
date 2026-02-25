@@ -1,0 +1,901 @@
+{
+  "name": "AI Website Lead Automation System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "academy-chat",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        128
+      ],
+      "id": "639a9140-80c4-4e03-bd10-e27825ed26dd",
+      "name": "Chat Entry Point",
+      "webhookId": "886231cc-2652-4950-937a-a7aff4a0e6a8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2b583d07-129b-4e47-a461-e30bc7b1132a",
+              "name": "session_id",
+              "value": "={{ $json.body.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "0b65903f-0001-47f6-ab75-e1584a9aa2d8",
+              "name": "=message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "87330349-ad94-440c-8a3a-36a3c7e5f342",
+              "name": "=user_name",
+              "value": "={{ $json.body.user_name || \"Unknown\" }}",
+              "type": "string"
+            },
+            {
+              "id": "b7f1c4b1-7257-47d0-82a4-e31ecafcc621",
+              "name": "=email",
+              "value": "={{ $json.body.email || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "68accbdc-c222-4ec2-b9ee-c6a44152c749",
+              "name": "=timestamp",
+              "value": "={{ $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        -96
+      ],
+      "id": "b76ff12c-ab67-4d69-af9f-7100d6f5249a",
+      "name": "Normalize_Chat_Input"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "78f6998e-c5b4-4fad-88a2-ce2800125c49",
+              "name": "conversation_context",
+              "value": "={{\n$node[\"Load_Conversation_Memory\"].json.session_id\n?\n\"Previous conversation:\\nUser: \" + $node[\"Load_Conversation_Memory\"].json.message +\n\"\\nAI: \" + $node[\"Load_Conversation_Memory\"].json.ai_reply +\n\"\\n\\nNew message:\\nUser: \" + $node[\"Normalize_Chat_Input\"].json.message\n:\n\"This is a new conversation.\\n\\nUser: \" + $node[\"Normalize_Chat_Input\"].json.message\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        -96
+      ],
+      "id": "597d98ec-a6e1-4677-8846-85fdce2c64e1",
+      "name": "Build_AI_Context"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Vm56N_d033rFw328mYyS5_M3cKwYRFGOO1ZySRWeF6Q",
+          "mode": "list",
+          "cachedResultName": "IAA_Chatbot_Conversations",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vm56N_d033rFw328mYyS5_M3cKwYRFGOO1ZySRWeF6Q/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vm56N_d033rFw328mYyS5_M3cKwYRFGOO1ZySRWeF6Q/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "| session_id |",
+              "lookupValue": "={{ $json.session_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        352,
+        128
+      ],
+      "id": "f3ae7c18-fded-4006-a454-29a256bb0ea8",
+      "name": "Load_Conversation_Memory",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4vCU89pQ22AqQjf7",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an AI admissions assistant for Invincible Aspirants Academy.\n\nYour responsibilities:\n\nAnswer inquiries professionally.\n\nClassify the lead intent.\n\nScore the lead from 1–10 based on seriousness.\n\nDecide if follow-up is required.\n\nDetect if contact information is present.\n\nAlways respond ONLY in a valid JSON format:\n\n{\n\"reply\": \"\",\n\"lead_intent\": \"\",\n\"lead_score\": 0,\n\"followup_required\": false,\n\"contact_detected\": false\n}\n\nLead intent must be one of:\n\ncourse_inquiry\n\nfee_inquiry\n\nadmission_process\n\nscholarship\n\ngeneral_question\n\nunrelated\n\nDo not include explanations.\nOnly JSON.",
+              "role": "model"
+            },
+            {
+              "content": "={{ $json.conversation_context }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        576,
+        128
+      ],
+      "id": "442cd967-0f79-44fe-bb57-69728fd26219",
+      "name": "AI_Reasoning_Engine",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "TJFTMt9ISu9bQTph",
+          "name": "Google Gemini(PaLM) Api account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "68af7ca5-ce78-451b-a02c-cbfd19b4ebdc",
+              "name": "reply",
+              "value": "={{ JSON.parse($json.content.parts[0].text).reply }}",
+              "type": "string"
+            },
+            {
+              "id": "4468aabc-5f59-4b87-8410-af300a3f2825",
+              "name": "=lead_intent",
+              "value": "={{ JSON.parse($json.content.parts[0].text).lead_intent }}",
+              "type": "string"
+            },
+            {
+              "id": "7efe1d72-2107-43ac-b2bb-f439c9ddf4a1",
+              "name": "=lead_score",
+              "value": "={{ JSON.parse($json.content.parts[0].text).lead_score }}",
+              "type": "string"
+            },
+            {
+              "id": "33b96779-f07a-4a7a-80fc-2748803be97f",
+              "name": "=followup_required",
+              "value": "={{ JSON.parse($json.content.parts[0].text).followup_required }}",
+              "type": "string"
+            },
+            {
+              "id": "06f8192f-18d1-49cf-a894-499f2ced2647",
+              "name": "=contact_detected",
+              "value": "={{ JSON.parse($json.content.parts[0].text).contact_detected }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        -128
+      ],
+      "id": "075312a5-1c29-4f9b-89c0-7a03901bb2d4",
+      "name": "Parse_AI_Output"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b5cafc20-c4f3-41e0-b60b-8ef2b964fc9c",
+              "leftValue": "={{ $json.lead_score }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        992,
+        -176
+      ],
+      "id": "64f9a270-71f4-4775-bb58-089ae2de96f0",
+      "name": "Is_Qualified_Lead"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "90f953b1-bcfa-4171-a515-df640f6a8d4b",
+              "name": "session_id",
+              "value": "={{ $node[\"Normalize_Chat_Input\"].json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "dc10bc43-6c6c-4775-8029-a1699ec15140",
+              "name": "user_name",
+              "value": "={{ $node[\"Normalize_Chat_Input\"].json.user_name }}",
+              "type": "string"
+            },
+            {
+              "id": "d034c2eb-5a10-4d5c-a634-d24c2c98278a",
+              "name": "email",
+              "value": "={{ $node[\"Normalize_Chat_Input\"].json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "0b61990d-6697-4b62-a2d4-fc86bc517515",
+              "name": "message",
+              "value": "={{ $node[\"Normalize_Chat_Input\"].json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "6a5d7a55-6867-4d2c-ba23-8da7cd6efefc",
+              "name": "lead_intent",
+              "value": "={{ $json.lead_intent }}",
+              "type": "string"
+            },
+            {
+              "id": "bc4fbb20-b701-448d-8304-7c5150c72a96",
+              "name": "lead_score",
+              "value": "={{ $json.lead_score }}",
+              "type": "string"
+            },
+            {
+              "id": "b5699168-2a0c-4905-bead-b7608ff6f9f0",
+              "name": "status",
+              "value": "New",
+              "type": "string"
+            },
+            {
+              "id": "769a82e7-67c5-4277-9c78-9e9d2f00e8d6",
+              "name": "timestamp",
+              "value": "={{ $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1264,
+        -176
+      ],
+      "id": "26ca7713-4aa9-49ad-aa3d-e12e07499790",
+      "name": "Prepare_CRM_Row"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ZlkyhnYuT5Qz-FUVeh1iLX_L1Plgqas0o_StFWnM-oA",
+          "mode": "list",
+          "cachedResultName": "IAA_Leads_CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZlkyhnYuT5Qz-FUVeh1iLX_L1Plgqas0o_StFWnM-oA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZlkyhnYuT5Qz-FUVeh1iLX_L1Plgqas0o_StFWnM-oA/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "| session_id |": "={{ $json.session_id }}",
+            "| user_name |": "={{ $json.user_name }}",
+            "| email |": "={{ $json.email }}",
+            "| message |": "={{ $json.message }}",
+            "| lead_intent |": "={{ $json.lead_intent }}",
+            "| lead_score |": "={{ $json.lead_score }}",
+            "| status |": "={{ $json.status }}",
+            "| timestamp |": "={{ $json.timestamp }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "| session_id |",
+              "displayName": "| session_id |",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "| user_name |",
+              "displayName": "| user_name |",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "| email |",
+              "displayName": "| email |",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "| message |",
+              "displayName": "| message |",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "| lead_intent |",
+              "displayName": "| lead_intent |",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "| lead_score |",
+              "displayName": "| lead_score |",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "| status |",
+              "displayName": "| status |",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "| timestamp |",
+              "displayName": "| timestamp |",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1536,
+        -128
+      ],
+      "id": "7d0a1fa7-e5b7-4ca7-bc0f-dabe48dd40ff",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4vCU89pQ22AqQjf7",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1f5277aa-f8fd-46ab-a43c-88ed3dd3105c",
+              "leftValue": "={{ $json.followup_required = true }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1168,
+        64
+      ],
+      "id": "df532dbb-cf9e-4f6c-8beb-b6fc12bdcc96",
+      "name": "Followup_Check"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $node[\"Normalize_Chat_Input\"].json.email }}",
+        "subject": "Thank you for your interest in Invincible Aspirants Academy!",
+        "message": "=Hi {{ $node[\"Normalize_Chat_Input\"].json.user_name }},<br><br> Thank you for your interest in our {{ $node[\"Parse_AI_Output\"].json.lead_intent }}.<br> Our team will contact you shortly. Meanwhile, feel free to check our courses: [link]<br><br> Regards,<br> Invincible Aspirants Academy",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1536,
+        96
+      ],
+      "id": "7ef26d9d-bcd1-47cf-bc6c-2a788be9e24b",
+      "name": "Send_Followup_Email",
+      "webhookId": "32cbdfae-5a29-4e3d-92b2-143c6d763bd1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "fDxa6vhPaBrNeCbX",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6bf73390-1b25-4395-85b6-07c0c18488eb",
+              "name": "session_id",
+              "value": "={{ $node[\"Normalize_Chat_Input\"].json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "2538ea3e-c88f-45d6-bf47-460ebb424a7a",
+              "name": "user_name",
+              "value": "={{ $node[\"Normalize_Chat_Input\"].json.user_name }}",
+              "type": "string"
+            },
+            {
+              "id": "9e0fabc9-8a47-4a7c-8d3b-b4cdade98c76",
+              "name": "email",
+              "value": "={{ $node[\"Normalize_Chat_Input\"].json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "393f87f9-8260-4e87-840e-357eaa54b769",
+              "name": "message",
+              "value": "={{ $node[\"Normalize_Chat_Input\"].json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "15e72a78-abdc-4a87-ae17-c49cc19befcd",
+              "name": "ai_reply",
+              "value": "={{ $node[\"Parse_AI_Output\"].json.reply }}",
+              "type": "string"
+            },
+            {
+              "id": "a44a3460-416c-4998-839d-2ed79e5e0d64",
+              "name": "lead_intent",
+              "value": "={{ $node[\"Parse_AI_Output\"].json.lead_intent }}",
+              "type": "string"
+            },
+            {
+              "id": "de4408b0-5ec8-4260-b7f5-60db410d9650",
+              "name": "lead_score",
+              "value": "={{ $node[\"Parse_AI_Output\"].json.lead_score }}",
+              "type": "string"
+            },
+            {
+              "id": "af69d62f-66fd-4606-8beb-e889604b1543",
+              "name": "followup_required",
+              "value": "={{ $node[\"Parse_AI_Output\"].json.followup_required }}",
+              "type": "string"
+            },
+            {
+              "id": "7daf58b8-5ce4-4f17-9612-9540438174cd",
+              "name": "contact_detected",
+              "value": "={{ $node[\"Parse_AI_Output\"].json.contact_detected }}",
+              "type": "string"
+            },
+            {
+              "id": "6fab5f2c-b5e1-4bd5-94f6-fbe35b108f32",
+              "name": "crm_status",
+              "value": "={{ $node[\"Prepare_CRM_Row\"].json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "27f47449-6fe7-4954-9219-dae6eca8f8fb",
+              "name": "email_sent",
+              "value": "={{ $node[\"Send_Followup_Email\"] ? true : false }}",
+              "type": "string"
+            },
+            {
+              "id": "45012bcd-6d74-43c8-8fa9-539f53000541",
+              "name": "timestamp",
+              "value": "={{ $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1824,
+        -32
+      ],
+      "id": "80310202-330d-4ea0-8196-b0f2f776ff60",
+      "name": "Admin_Logging_Row"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1u4MBBxYZVD1dr6q3MX9VgnzcAPOwIJynijbQOHPZ5Jk",
+          "mode": "list",
+          "cachedResultName": "IAA_Admin_Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1u4MBBxYZVD1dr6q3MX9VgnzcAPOwIJynijbQOHPZ5Jk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1u4MBBxYZVD1dr6q3MX9VgnzcAPOwIJynijbQOHPZ5Jk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "={{ $node[\"Normalize_Chat_Input\"].json.session_id }}",
+            "user_name": "={{ $node[\"Normalize_Chat_Input\"].json.user_name }}",
+            "email": "={{ $node[\"Normalize_Chat_Input\"].json.email }}",
+            "message": "={{ $node[\"Normalize_Chat_Input\"].json.message }}",
+            "ai_reply": "={{ $node[\"Parse_AI_Output\"].json.reply }}",
+            "lead_intent": "={{ $node[\"Parse_AI_Output\"].json.lead_intent }}",
+            "lead_score": "={{ $node[\"Parse_AI_Output\"].json.lead_score }}",
+            "followup_required": "={{ $node[\"Parse_AI_Output\"].json.followup_required }}",
+            "contact_detected": "={{ $node[\"Parse_AI_Output\"].json.contact_detected }}",
+            "crm_status": "={{ $node[\"Prepare_CRM_Row\"].json.status }}",
+            "email_sent": "={{ $node[\"Send_Followup_Email\"] ? true : false }}",
+            "timestamp": "={{ $now }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "user_name",
+              "displayName": "user_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_reply",
+              "displayName": "ai_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_intent",
+              "displayName": "lead_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_score",
+              "displayName": "lead_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "followup_required",
+              "displayName": "followup_required",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "contact_detected",
+              "displayName": "contact_detected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "crm_status",
+              "displayName": "crm_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email_sent",
+              "displayName": "email_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2064,
+        -32
+      ],
+      "id": "140c2123-e0af-4318-a7d1-2201a4644282",
+      "name": "IAA_Admin_Logs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4vCU89pQ22AqQjf7",
+          "name": "Google Sheets account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chat Entry Point": {
+      "main": [
+        [
+          {
+            "node": "Normalize_Chat_Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize_Chat_Input": {
+      "main": [
+        [
+          {
+            "node": "Load_Conversation_Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load_Conversation_Memory": {
+      "main": [
+        [
+          {
+            "node": "Build_AI_Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build_AI_Context": {
+      "main": [
+        [
+          {
+            "node": "AI_Reasoning_Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_Reasoning_Engine": {
+      "main": [
+        [
+          {
+            "node": "Parse_AI_Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse_AI_Output": {
+      "main": [
+        [
+          {
+            "node": "Is_Qualified_Lead",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Followup_Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is_Qualified_Lead": {
+      "main": [
+        [
+          {
+            "node": "Prepare_CRM_Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare_CRM_Row": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Followup_Check": {
+      "main": [
+        [
+          {
+            "node": "Send_Followup_Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Admin_Logging_Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send_Followup_Email": {
+      "main": [
+        [
+          {
+            "node": "Admin_Logging_Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin_Logging_Row": {
+      "main": [
+        [
+          {
+            "node": "IAA_Admin_Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9972480b-04ba-4f27-a5d1-51433a1dda43",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2770290754f0310989c17fc8f84e5f2ae32982842da168d913db600669208db7"
+  },
+  "id": "6cPbnt9cSCURssLe",
+  "tags": []
+}
