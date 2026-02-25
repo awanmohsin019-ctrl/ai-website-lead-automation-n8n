@@ -15,8 +15,8 @@ Logging qualified leads into CRM (Google Sheets)
 Sending automated follow-up emails
 
 Maintaining complete administrative logs
-Architecture
 
+# Architecture
 Single Workflow Structure:
 
 Chat Intake (Webhook + AI Processing)
@@ -28,8 +28,8 @@ CRM Logging (Google Sheets Integration)
 Follow-Up Automation (Email Node)
 
 Admin Logging (Conversation & Execution Tracking)
-Core Features
 
+# Core Features
 Structured AI JSON parsing
 
 Conditional branching logic
@@ -41,8 +41,8 @@ Error-safe execution using optional chaining
 Clean HTTP response lifecycle (single webhook response)
 
 Modular and scalable workflow design
-Use Cases
 
+# Use Cases
 Educational institutions
 
 Online academies
@@ -52,8 +52,8 @@ SaaS inbound lead capture
 Agency automation systems
 
 Service-based businesses
-Tech Stack
 
+# Tech Stack
 n8n
 
 AI Model Integration (structured output parsing)
@@ -63,8 +63,8 @@ Google Sheets API
 SMTP / Gmail integration
 
 Webhook-based HTTP handling
-Future Extensions
 
+# Future Extensions
 Multi-step delayed follow-up sequences
 
 WhatsApp integration
@@ -74,6 +74,6 @@ CRM integrations (HubSpot, Zoho, etc.)
 Analytics dashboard
 
 Lead scoring refinement engine
-License
 
+# License
 Open for learning and demonstration purposes
